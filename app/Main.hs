@@ -7,33 +7,34 @@ import Control.Exception (finally)
 import Control.Monad (when)
 import Data.Char (toLower)
 import Data.Monoid ((<>))
-import Lib
+import Messages
 import Discord
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 
 
-helloWorld :: IO ()
-helloWorld = do
+meidobot :: IO ()
+meidobot = do
     tok <- T.strip <$> TIO.readFile "./secrets/auth-token.secret"
     dis <- loginRestGateway (Auth tok)
-    finally (loopingHello dis)
+    finally (loop dis)
             (stopDiscord dis)
 
-loopingHello :: (RestChan, Gateway, z) -> IO ()
-loopingHello dis = do
+loop :: (RestChan, Gateway, z) -> IO ()
+loop dis = do
     e <- nextEvent dis
+    Right cache <- readCache dis
     case e of
         Left er -> putStrLn ("Event error: " <> show er)
-        Right (MessageCreate m) -> do
-            when (isHello (messageText m)) $ do
-                resp <- restCall dis (CreateMessage (messageChannel m) "on kakkapylly.")
-                putStrLn (show resp)
-                putStrLn ""
+        Right (MessageCreate m) ->
+            case messages (_currentUser cache) m of
+                Just textResponse -> do
+                    resp <- restCall dis (CreateMessage (messageChannel m) textResponse)
+                    putStrLn (show resp)
+                    putStrLn ""
+                Nothing -> pure ()
         _ -> pure ()
-    loopingHello dis
+    loop dis
 
-isHello :: T.Text -> Bool
-isHello = T.isPrefixOf "janne" . T.map toLower
-
-main = helloWorld
+main :: IO ()
+main = meidobot
