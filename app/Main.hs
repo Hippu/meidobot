@@ -17,6 +17,7 @@ meidobot :: IO ()
 meidobot = do
     tok <- T.strip <$> TIO.readFile "./secrets/auth-token.secret"
     dis <- loginRestGateway (Auth tok)
+    putStrLn "Running..."
     finally (loop dis)
             (stopDiscord dis)
 

@@ -21,5 +21,13 @@ messages botUser message =
         Nothing
 
 paskaMaailma :: T.Text -> Bool
-paskaMaailma t =
-    (List.elem "paska" $ T.words t) && (List.elem "maailma" $ T.words t)
+paskaMaailma =
+    hasWords ["paska", "maailma"]
+    
+hasWord :: T.Text -> T.Text -> Bool
+hasWord word text =
+    List.elem word $ T.words text
+
+hasWords :: [T.Text] -> T.Text -> Bool
+hasWords words text =
+    List.all (\x -> hasWord x text) words
