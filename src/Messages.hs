@@ -15,6 +15,7 @@ messages dis botUser receivedMessage =
                 res <- restCall dis req
                 putStrLn (show res)
                 putStrLn ""
+            _ -> pure ()
         case responseReaction receivedMessage of
             Just reaction -> do
                 res <- restCall dis $ 
@@ -22,6 +23,7 @@ messages dis botUser receivedMessage =
                     reaction
                 putStrLn (show res)
                 putStrLn ""
+            _ -> pure ()
     else
         pure ()
 
