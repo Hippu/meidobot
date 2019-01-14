@@ -1,0 +1,3 @@
+[submodule "discord-haskell"]
+	path = discord-haskell
+	url = git@github.com:aquarial/discord-haskell.git
