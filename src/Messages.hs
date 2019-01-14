@@ -40,7 +40,7 @@ responseMessage m
 
 responseReaction :: Message -> Maybe T.Text
 responseReaction m
-    | (userName sender) == "Jaagr" = Just ":thumbsdown:"
+    | (userName sender) == "Jaagr" = Just "👎"
     | otherwise = Nothing
     where
         sender = messageAuthor m
