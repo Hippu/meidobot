@@ -7,19 +7,41 @@ import qualified Data.Text as T
 import Discord
 import qualified Data.List as List
 
-responseChooser :: T.Text -> Maybe T.Text
-responseChooser t
-    | T.isPrefixOf "moi" t = Just "Moi!"
-    | paskaMaailma t = Just "http://gifs.hippuu.fi/g/112197.gif"
-    | meidobotDiss t = Just "Vittu tapan sut"
-    | otherwise = Nothing
-
-messages :: User -> Message -> Maybe T.Text
-messages botUser message =
-    if (userId $ messageAuthor message) /= (userId botUser) then
-        responseChooser $ T.toLower $ messageText message
+messages :: (RestChan, Gateway, z) -> User -> Message -> IO ()
+messages dis botUser receivedMessage =
+    if (userId $ messageAuthor receivedMessage) /= (userId botUser) then do
+        case responseMessage receivedMessage of
+            Just req -> do
+                res <- restCall dis req
+                putStrLn (show res)
+                putStrLn ""
+        case responseReaction receivedMessage of
+            Just reaction -> do
+                res <- restCall dis $ 
+                    CreateReaction (messageChannel receivedMessage, messageId receivedMessage)
+                    reaction
+                putStrLn (show res)
+                putStrLn ""
     else
-        Nothing
+        pure ()
+
+
+responseMessage :: Message -> Maybe (ChannelRequest Message)
+responseMessage m
+    | T.isPrefixOf "moi" t = Just $ response "Moi!"
+    | paskaMaailma t = Just $ response "http://gifs.hippuu.fi/g/112197.gif"
+    | meidobotDiss t = Just $ response "Vittu tapan sut"
+    | otherwise = Nothing
+    where
+        t = T.toLower $ messageText m
+        response = CreateMessage (messageChannel m)
+
+responseReaction :: Message -> Maybe T.Text
+responseReaction m
+    | (userName sender) == "Jaagr" = Just ":thumbsdown:"
+    | otherwise = Nothing
+    where
+        sender = messageAuthor m
 
 paskaMaailma :: T.Text -> Bool
 paskaMaailma =

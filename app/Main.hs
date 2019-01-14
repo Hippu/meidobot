@@ -27,14 +27,7 @@ loop dis = do
     Right cache <- readCache dis
     case e of
         Left er -> putStrLn ("Event error: " <> show er)
-        Right (MessageCreate m) ->
-            case messages (_currentUser cache) m of
-                Just textResponse -> do
-                    resp <- restCall dis (CreateMessage (messageChannel m) textResponse)
-                    putStrLn (show resp)
-                    putStrLn ""
-                Nothing -> pure ()
-        _ -> pure ()
+        Right (MessageCreate m) -> messages dis (_currentUser cache) m
     loop dis
 
 main :: IO ()
