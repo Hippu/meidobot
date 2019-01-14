@@ -28,6 +28,7 @@ loop dis = do
     case e of
         Left er -> putStrLn ("Event error: " <> show er)
         Right (MessageCreate m) -> messages dis (_currentUser cache) m
+        _ -> pure ()
     loop dis
 
 main :: IO ()
