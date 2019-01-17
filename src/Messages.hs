@@ -7,9 +7,9 @@ import qualified Data.Text as T
 import Discord
 import qualified Data.List as List
 
-messages :: (RestChan, Gateway, z) -> User -> Message -> IO ()
-messages dis botUser receivedMessage =
-    if (userId $ messageAuthor receivedMessage) /= (userId botUser) then do
+messages :: (RestChan, Gateway, z) -> Message -> IO ()
+messages dis receivedMessage =
+    if (not $ userIsBot $ messageAuthor receivedMessage) then do
         case responseMessage receivedMessage of
             Just req -> do
                 res <- restCall dis req

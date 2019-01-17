@@ -24,10 +24,9 @@ meidobot = do
 loop :: (RestChan, Gateway, z) -> IO ()
 loop dis = do
     e <- nextEvent dis
-    Right cache <- readCache dis
     case e of
         Left er -> putStrLn ("Event error: " <> show er)
-        Right (MessageCreate m) -> messages dis (_currentUser cache) m
+        Right (MessageCreate m) -> messages dis m
         _ -> pure ()
     loop dis
 
