@@ -9,11 +9,11 @@ import qualified Data.List as List
 
 messages :: (RestChan, Gateway, z) -> Message -> IO ()
 messages dis receivedMessage =
-    if (not $ userIsBot $ messageAuthor receivedMessage) then do
+    if not $ userIsBot $ messageAuthor receivedMessage then do
         case responseMessage receivedMessage of
             Just req -> do
                 res <- restCall dis req
-                putStrLn (show res)
+                print res
                 putStrLn ""
             _ -> pure ()
         case responseReaction receivedMessage of
@@ -21,7 +21,7 @@ messages dis receivedMessage =
                 res <- restCall dis $ 
                     CreateReaction (messageChannel receivedMessage, messageId receivedMessage)
                     reaction
-                putStrLn (show res)
+                print res
                 putStrLn ""
             _ -> pure ()
     else
@@ -61,8 +61,8 @@ hasWord word text =
 
 hasAllWords :: [T.Text] -> T.Text -> Bool
 hasAllWords words text =
-    List.all (\x -> hasWord x text) words
+    List.all (`hasWord` text) words
 
 hasAnyWords :: [T.Text] -> T.Text -> Bool
 hasAnyWords words text =
-    List.any (\x -> hasWord x text) words
+    List.any (`hasWord` text) words
