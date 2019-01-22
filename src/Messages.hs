@@ -18,7 +18,7 @@ messages dis receivedMessage =
             _ -> pure ()
         case responseReaction receivedMessage of
             Just reaction -> do
-                res <- restCall dis $ 
+                res <- restCall dis $
                     CreateReaction (messageChannel receivedMessage, messageId receivedMessage)
                     reaction
                 print res
@@ -33,6 +33,7 @@ responseMessage m
     | T.isPrefixOf "moi" t = Just $ response "Moi!"
     | paskaMaailma t = Just $ response "http://gifs.hippuu.fi/g/112197.gif"
     | meidobotDiss t = Just $ response "Vittu tapan sut"
+    | meidobotDiss2 m = Just $ response "http://gifs.hippuu.fi/g/mbot1.png"
     | otherwise = Nothing
     where
         t = T.toLower $ messageText m
@@ -40,7 +41,7 @@ responseMessage m
 
 responseReaction :: Message -> Maybe T.Text
 responseReaction m
-    | (userName sender) == "Jaagr" = Just "👎"
+    | userName sender == "Jaagr" = Just "👎"
     | otherwise = Nothing
     where
         sender = messageAuthor m
@@ -51,13 +52,26 @@ paskaMaailma =
 
 meidobotDiss :: T.Text -> Bool
 meidobotDiss text =
-    hasAnyWords ["meidobot", "@meidobot", "robotti", "robotit", "botti"] text &&
+    hasAnyWords ["meidobot", "robotti", "robotit", "botti"] text &&
     hasAnyWords ["paskaa", "tyhmä", "vittuun", "vitun", "paska", "idiootti", "idiootteja", "kiellettävä"] text
 
-    
+meidobotDiss2 :: Message -> Bool
+meidobotDiss2 msg =
+    msg `hasRecipientWithUserName` "Meidobot" &&
+    T.toLower (messageText msg) `hasAnyWordsStartingWith`
+    ["kuole", "haise", "ime", "vedä"]
+
+hasRecipientWithUserName :: Message -> String -> Bool
+hasRecipientWithUserName m recipientUserName =
+    List.elem recipientUserName $ userName <$> messageMentions m
+
 hasWord :: T.Text -> T.Text -> Bool
 hasWord word text =
     List.elem word $ T.words text
+
+hasWordStartingWith :: T.Text -> T.Text -> Bool
+hasWordStartingWith text word =
+    List.any (`T.isPrefixOf` word) $ T.words text
 
 hasAllWords :: [T.Text] -> T.Text -> Bool
 hasAllWords words text =
@@ -66,3 +80,7 @@ hasAllWords words text =
 hasAnyWords :: [T.Text] -> T.Text -> Bool
 hasAnyWords words text =
     List.any (`hasWord` text) words
+
+hasAnyWordsStartingWith :: T.Text -> [T.Text] -> Bool
+hasAnyWordsStartingWith text =
+    List.any (text `hasWordStartingWith`)
