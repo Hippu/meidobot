@@ -71,7 +71,7 @@ hasWord word text =
 
 hasWordStartingWith :: T.Text -> T.Text -> Bool
 hasWordStartingWith text word =
-    List.any (T.isPrefixOf word) $ T.words text
+    List.any (`T.isPrefixOf` word) $ T.words text
 
 hasAllWords :: [T.Text] -> T.Text -> Bool
 hasAllWords words text =
@@ -83,4 +83,4 @@ hasAnyWords words text =
 
 hasAnyWordsStartingWith :: T.Text -> [T.Text] -> Bool
 hasAnyWordsStartingWith text =
-    List.any (`hasWordStartingWith` text)
+    List.any (text `hasWordStartingWith`)
