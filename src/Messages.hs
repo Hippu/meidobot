@@ -6,11 +6,13 @@ module Messages
 import qualified Data.Text as T
 import Discord
 import qualified Data.List as List
+import qualified System.Random as Random
 
 messages :: (RestChan, Gateway, z) -> Message -> IO ()
 messages dis receivedMessage =
     if not $ userIsBot $ messageAuthor receivedMessage then do
-        case responseMessage receivedMessage of
+        rng <- Random.newStdGen
+        case responseMessage receivedMessage rng of
             Just req -> do
                 res <- restCall dis req
                 print res
@@ -28,11 +30,14 @@ messages dis receivedMessage =
         pure ()
 
 
-responseMessage :: Message -> Maybe (ChannelRequest Message)
-responseMessage m
+responseMessage :: Random.RandomGen g => Message -> g -> Maybe (ChannelRequest Message)
+responseMessage m rng
     | T.isPrefixOf "moi" t = Just $ response "Moi!"
     | paskaMaailma t = Just $ response "http://gifs.hippuu.fi/g/112197.gif"
-    | meidobotDiss t = Just $ response "Vittu tapan sut"
+    | meidobotDiss t = Just $ response $ 
+        pickRandomElement 
+        ["Vittu tapan sut", "Hauska fakta: Mä tiedän missä sä asut", "(┛✧Д✧))┛彡┻━┻"] 
+        rng
     | meidobotDiss2 m = Just $ response "http://gifs.hippuu.fi/g/mbot1.png"
     | meidoFiction t = Just $ response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
     | otherwise = Nothing
@@ -46,6 +51,10 @@ responseReaction m
     | otherwise = Nothing
     where
         sender = messageAuthor m
+
+pickRandomElement :: Random.RandomGen g => [a] -> g -> a
+pickRandomElement l rng =
+    l !! fst (Random.randomR (0, List.length l - 1) rng)
 
 paskaMaailma :: T.Text -> Bool
 paskaMaailma =
