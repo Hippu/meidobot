@@ -34,6 +34,7 @@ responseMessage m
     | paskaMaailma t = Just $ response "http://gifs.hippuu.fi/g/112197.gif"
     | meidobotDiss t = Just $ response "Vittu tapan sut"
     | meidobotDiss2 m = Just $ response "http://gifs.hippuu.fi/g/mbot1.png"
+    | meidoFiction t = Just $ response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
     | otherwise = Nothing
     where
         t = T.toLower $ messageText m
@@ -49,6 +50,13 @@ responseReaction m
 paskaMaailma :: T.Text -> Bool
 paskaMaailma =
     hasAllWords ["paska", "maailma"]
+
+meidoFiction :: T.Text -> Bool
+meidoFiction t =
+    t == "wat" || t == "what" || t == "mitä" 
+    || hasAllWords ["look", "like", "bitch"] t
+    || hasAllWords ["english", "motherfucker"] t
+    || hasAllWords ["ezekiel", "25:17"] t
 
 meidobotDiss :: T.Text -> Bool
 meidobotDiss text =
