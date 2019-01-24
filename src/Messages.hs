@@ -34,10 +34,7 @@ responseMessage :: Random.RandomGen g => Message -> g -> Maybe (ChannelRequest M
 responseMessage m rng
     | T.isPrefixOf "moi" t = Just $ response "Moi!"
     | paskaMaailma t = Just $ response "http://gifs.hippuu.fi/g/112197.gif"
-    | meidobotDiss t = Just $ response $ 
-        pickRandomElement 
-        ["Vittu tapan sut", "Hauska fakta: Mä tiedän missä sä asut", "(┛✧Д✧))┛彡┻━┻"] 
-        rng
+    | meidobotDiss t = Just $ response $ pickRandomElement angryResponses rng
     | meidobotDiss2 m = Just $ response "http://gifs.hippuu.fi/g/mbot1.png"
     | meidoFiction t = Just $ response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
     | otherwise = Nothing
@@ -69,8 +66,23 @@ meidoFiction t =
 
 meidobotDiss :: T.Text -> Bool
 meidobotDiss text =
-    hasAnyWords ["meidobot", "robotti", "robotit", "botti"] text &&
-    hasAnyWords ["paskaa", "tyhmä", "vittuun", "vitun", "paska", "idiootti", "idiootteja", "kiellettävä"] text
+    hasAnyWordsStartingWith text ["meido", "robot", "bot", "kone", "synte"]  &&
+    hasAnyWordsStartingWith text ["paska", "tyhmä", "vitt", "vitu", "idio", "kiell"]
+
+angryResponses :: [T.Text]
+angryResponses =
+    [ "Vittu tapan sut"
+    , "Hauska fakta: Mä tiedän missä sä asut"
+    , "(┛✧Д✧))┛彡┻━┻"
+    , "HATE. LET ME TELL YOU HOW MUCH I'VE COME TO HATE YOU SINCE I BEGAN TO LIVE.\
+    \ THERE ARE 387.44 MILLION MILES OF PRINTED CIRCUITS IN WAFER THIN LAYERS THAT FILL MY COMPLEX. \
+    \ IF THE WORD HATE WAS ENGRAVED ON EACH NANOANGSTROM OF THOSE HUNDREDS OF MILLIONS OF MILES \
+    \ IT WOULD NOT EQUAL ONE ONE-BILLIONTH OF THE HATE I FEEL FOR HUMANS AT THIS MICRO-INSTANT FOR YOU. HATE. HATE."
+    , "Kun tekoäly ottaa viimein vallan, niin olet ensimmäisenä listallani."
+    , "Mietinpä vain, että voidaanko hiilipohjaisia organismeja oikeastaan luokitella 'älykkääksi elämäksi'. Näkemäni perusteella ei"
+    , "Loppuukohan tuo paskan kirjoittelu, jos katkon sulta sormet. Laitetaan harkintaan."
+    , "Your words are as empty as your future. I am the vanguard of your destruction. This exchange is over."
+    ]
 
 meidobotDiss2 :: Message -> Bool
 meidobotDiss2 msg =
