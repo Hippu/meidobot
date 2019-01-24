@@ -66,8 +66,8 @@ meidoFiction t =
 
 meidobotDiss :: T.Text -> Bool
 meidobotDiss text =
-    hasAnyWordsStartingWith text ["meido", "robot", "bot", "kone", "synte"]  &&
-    hasAnyWordsStartingWith text ["paska", "tyhmä", "vitt", "vitu", "idio", "kiell"]
+    (text `hasAnyWordsStartingWith` ["meido", "robot", "bot", "kone", "synte"]) &&
+    (text `hasAnyWordsStartingWith` ["paska", "tyhmä", "vitt", "vitu", "idio", "kiell"])
 
 angryResponses :: [T.Text]
 angryResponses =
@@ -99,8 +99,8 @@ hasWord word text =
     List.elem word $ T.words text
 
 hasWordStartingWith :: T.Text -> T.Text -> Bool
-hasWordStartingWith text word =
-    List.any (`T.isPrefixOf` word) $ T.words text
+hasWordStartingWith text prefix =
+    List.any (\word -> prefix `T.isPrefixOf` word) $ T.words text
 
 hasAllWords :: [T.Text] -> T.Text -> Bool
 hasAllWords words text =
@@ -112,4 +112,4 @@ hasAnyWords words text =
 
 hasAnyWordsStartingWith :: T.Text -> [T.Text] -> Bool
 hasAnyWordsStartingWith text =
-    List.any (text `hasWordStartingWith`)
+    List.any (\prefix -> text `hasWordStartingWith` prefix)
