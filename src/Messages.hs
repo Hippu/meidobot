@@ -15,7 +15,7 @@ data MeidoResponse
 
 messages :: (RestChan, Gateway, z) -> Message -> IO ()
 messages dis receivedMessage =
-    if not $ userIsBot $ messageAuthor receivedMessage then do
+    if messageAuthorIsNotBot receivedMessage then do
         rng <- Random.newStdGen
         case response receivedMessage rng of
             Just (MeidoResponse request) -> do
@@ -27,6 +27,18 @@ messages dis receivedMessage =
         pure ()
 
 
+messageAuthorIsNotBot :: Message -> Bool
+messageAuthorIsNotBot m =
+    case messageAuthor m of
+        Right user -> not $ userIsBot user
+        _ -> True
+
+messageAuthorHasUsername :: Message -> String -> Bool
+messageAuthorHasUsername m name =
+    case messageAuthor m of
+        Right user -> (userName user) == name
+        _ -> False
+
 response :: Random.RandomGen g => Message -> g -> Maybe MeidoResponse
 response m rng
     | T.isPrefixOf "moi" t = response "Moi!"
@@ -34,13 +46,12 @@ response m rng
     | meidobotDiss t = response $ pickRandomElement angryResponses rng
     | meidobotDiss2 m = response "http://gifs.hippuu.fi/g/mbot1.png"
     | meidoFiction t = response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
-    | userName sender == "Jaagr" = reaction "👎"
+    | messageAuthorHasUsername m "Jaagr" = reaction "👎"
     | otherwise = Nothing
     where
-        sender = messageAuthor m
         t = T.toLower $ messageText m
-        response = \x -> Just $ MeidoResponse $ CreateMessage (messageChannel m) x
-        reaction = \x -> Just $ MeidoReaction $ CreateReaction (messageChannel m, messageId m) x
+        response x = Just $ MeidoResponse $ CreateMessage (messageChannel m) x
+        reaction x = Just $ MeidoReaction $ CreateReaction (messageChannel m, messageId m) x
 
 pickRandomElement :: Random.RandomGen g => [a] -> g -> a
 pickRandomElement l rng =
