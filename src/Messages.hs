@@ -8,21 +8,18 @@ import Discord
 import qualified Data.List as List
 import qualified System.Random as Random
 
+data MeidoResponse 
+    = MeidoResponse (ChannelRequest Message)
+    | MeidoReaction (ChannelRequest ())
+--    | MeidoResponseAndReaction Message T.Text
+
 messages :: (RestChan, Gateway, z) -> Message -> IO ()
 messages dis receivedMessage =
     if not $ userIsBot $ messageAuthor receivedMessage then do
         rng <- Random.newStdGen
-        case responseMessage receivedMessage rng of
-            Just req -> do
-                res <- restCall dis req
-                print res
-                putStrLn ""
-            _ -> pure ()
-        case responseReaction receivedMessage of
-            Just reaction -> do
-                res <- restCall dis $
-                    CreateReaction (messageChannel receivedMessage, messageId receivedMessage)
-                    reaction
+        case response receivedMessage rng of
+            Just (MeidoResponse request) -> do
+                res <- restCall dis request
                 print res
                 putStrLn ""
             _ -> pure ()
@@ -30,24 +27,20 @@ messages dis receivedMessage =
         pure ()
 
 
-responseMessage :: Random.RandomGen g => Message -> g -> Maybe (ChannelRequest Message)
-responseMessage m rng
-    | T.isPrefixOf "moi" t = Just $ response "Moi!"
-    | paskaMaailma t = Just $ response "http://gifs.hippuu.fi/g/112197.gif"
-    | meidobotDiss t = Just $ response $ pickRandomElement angryResponses rng
-    | meidobotDiss2 m = Just $ response "http://gifs.hippuu.fi/g/mbot1.png"
-    | meidoFiction t = Just $ response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
-    | otherwise = Nothing
-    where
-        t = T.toLower $ messageText m
-        response = CreateMessage (messageChannel m)
-
-responseReaction :: Message -> Maybe T.Text
-responseReaction m
-    | userName sender == "Jaagr" = Just "👎"
+response :: Random.RandomGen g => Message -> g -> Maybe MeidoResponse
+response m rng
+    | T.isPrefixOf "moi" t = response "Moi!"
+    | paskaMaailma t = response "http://gifs.hippuu.fi/g/112197.gif"
+    | meidobotDiss t = response $ pickRandomElement angryResponses rng
+    | meidobotDiss2 m = response "http://gifs.hippuu.fi/g/mbot1.png"
+    | meidoFiction t = response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
+    | userName sender == "Jaagr" = reaction "👎"
     | otherwise = Nothing
     where
         sender = messageAuthor m
+        t = T.toLower $ messageText m
+        response = \x -> Just $ MeidoResponse $ CreateMessage (messageChannel m) x
+        reaction = \x -> Just $ MeidoReaction $ CreateReaction (messageChannel m, messageId m) x
 
 pickRandomElement :: Random.RandomGen g => [a] -> g -> a
 pickRandomElement l rng =
