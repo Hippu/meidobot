@@ -16,7 +16,7 @@ data MeidoResponse
 
 messages :: (RestChan, Gateway, z) -> Message -> IO ()
 messages dis receivedMessage =
-    case (messageAuthorIsNotBot receivedMessage,
+    case (not $ userIsBot $ messageAuthor receivedMessage,
           hasLinkToImage $ messageText receivedMessage) of
         (True, Nothing) -> do
             rng <- Random.newStdGen
@@ -38,7 +38,7 @@ messages dis receivedMessage =
             putStrLn ""
         _ -> pure ()
 
-
+{- 
 messageAuthorIsNotBot :: Message -> Bool
 messageAuthorIsNotBot m =
     case messageAuthor m of
@@ -49,7 +49,7 @@ messageAuthorHasUsername :: Message -> String -> Bool
 messageAuthorHasUsername m name =
     case messageAuthor m of
         Right user -> (userName user) == name
-        _ -> False
+        _ -> False -}
 
 response :: Random.RandomGen g => Message -> g -> Maybe MeidoResponse
 response m rng
@@ -59,7 +59,7 @@ response m rng
     | meidobotDiss2 m = response "http://gifs.hippuu.fi/g/mbot1.png"
     | meidoFiction t = response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
     | t `hasWordStartingWith` "69" = response "nice."
-    | messageAuthorHasUsername m "Jaagr" = reaction "👎"
+    | userName (messageAuthor m) == "Jaagr" = reaction "👎"
     | otherwise = Nothing
     where
         t = T.toLower $ messageText m
