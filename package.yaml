@@ -27,6 +27,8 @@ dependencies:
 - containers
 - bytestring
 - random
+- req
+- data-default-class
 
 library:
   source-dirs: src

@@ -7,6 +7,7 @@ import qualified Data.Text as T
 import Discord
 import qualified Data.List as List
 import qualified System.Random as Random
+import Meidovision
 
 data MeidoResponse 
     = MeidoResponse (ChannelRequest Message)
@@ -15,16 +16,27 @@ data MeidoResponse
 
 messages :: (RestChan, Gateway, z) -> Message -> IO ()
 messages dis receivedMessage =
-    if messageAuthorIsNotBot receivedMessage then do
-        rng <- Random.newStdGen
-        case response receivedMessage rng of
-            Just (MeidoResponse request) -> do
-                res <- restCall dis request
-                print res
-                putStrLn ""
-            _ -> pure ()
-    else
-        pure ()
+    case (messageAuthorIsNotBot receivedMessage,
+          hasLinkToImage $ messageText receivedMessage) of
+        (True, Nothing) -> do
+            rng <- Random.newStdGen
+            case response receivedMessage rng of
+                Just (MeidoResponse request) -> do
+                    res <- restCall dis request
+                    print res
+                    putStrLn ""
+                _ -> pure ()
+        (True, Just img) -> do
+            imgAnalysis <- analyzeRequest img
+            print imgAnalysis
+            case imageResponse receivedMessage imgAnalysis of
+                Just (MeidoResponse request) -> do
+                    res <- restCall dis request
+                    print res
+                    putStrLn ""
+                _ -> pure ()
+            putStrLn ""
+        _ -> pure ()
 
 
 messageAuthorIsNotBot :: Message -> Bool
@@ -46,12 +58,21 @@ response m rng
     | meidobotDiss t = response $ pickRandomElement angryResponses rng
     | meidobotDiss2 m = response "http://gifs.hippuu.fi/g/mbot1.png"
     | meidoFiction t = response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
+    | t `hasWordStartingWith` "69" = response "nice."
     | messageAuthorHasUsername m "Jaagr" = reaction "👎"
     | otherwise = Nothing
     where
         t = T.toLower $ messageText m
         response x = Just $ MeidoResponse $ CreateMessage (messageChannel m) x
         reaction x = Just $ MeidoReaction $ CreateReaction (messageChannel m, messageId m) x
+
+imageResponse :: Message -> AnalyzeImageResponse -> Maybe MeidoResponse
+imageResponse m analyzedImg
+    | tagInImage analyzedImg "cat" = response ":cat:"
+    | tagInImage analyzedImg "dog" = response ":dog:"
+    | otherwise = Nothing
+    where
+        response x = Just $ MeidoResponse $ CreateMessage (messageChannel m) x
 
 pickRandomElement :: Random.RandomGen g => [a] -> g -> a
 pickRandomElement l rng =
@@ -71,7 +92,7 @@ meidoFiction t =
 meidobotDiss :: T.Text -> Bool
 meidobotDiss text =
     (text `hasAnyWordsStartingWith` ["meido", "robot", "bot", "kone", "synte"]) &&
-    (text `hasAnyWordsStartingWith` ["paska", "tyhmä", "vitt", "vitu", "idio", "kiell"])
+    (text `hasAnyWordsStartingWith` ["paska", "tyhmä", "vitt", "vitu", "idio", "kiell", "pers", "vihaan", "typerä"])
 
 angryResponses :: [T.Text]
 angryResponses =
@@ -117,3 +138,19 @@ hasAnyWords words text =
 hasAnyWordsStartingWith :: T.Text -> [T.Text] -> Bool
 hasAnyWordsStartingWith text =
     List.any (\prefix -> text `hasWordStartingWith` prefix)
+
+hasLinkToImage :: T.Text -> Maybe T.Text
+hasLinkToImage t =
+    case List.filter (\w -> T.isPrefixOf "http" w && 
+    (T.isSuffixOf ".png" w || T.isSuffixOf ".jpg" w ||
+     T.isSuffixOf ".jpeg" w || T.isSuffixOf ".gif" w)) 
+    $ T.words t of 
+        [] -> Nothing
+        x:_ -> Just (x)
+
+tagInImage :: AnalyzeImageResponse -> T.Text -> Bool
+tagInImage analysis tag =
+    case tags analysis of
+        Just tagList ->
+            List.any (\t -> tagName t == tag && tagConfidence t > 0.75) tagList
+        _ -> False
