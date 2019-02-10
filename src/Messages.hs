@@ -71,6 +71,7 @@ imageResponse :: Message -> AnalyzeImageResponse -> Maybe MeidoResponse
 imageResponse m analyzedImg
     | tagInImage analyzedImg "cat" = response ":cat:"
     | tagInImage analyzedImg "dog" = response ":dog:"
+    | lewdsDetected analyzedImg = response ":flushed:"
     | otherwise = Nothing
     where
         response x = Just $ MeidoResponse $ CreateMessage (messageChannel m) x
@@ -161,4 +162,10 @@ tagInImage analysis tag =
     case tags analysis of
         Just tagList ->
             List.any (\t -> tagName t == tag && tagConfidence t > 0.75) tagList
+        _ -> False
+
+lewdsDetected :: AnalyzeImageResponse -> Bool
+lewdsDetected a =
+    case adult a of
+        Just adultAnalysis -> isAdultContent adultAnalysis || isRacyContent adultAnalysis 
         _ -> False
