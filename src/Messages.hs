@@ -5,6 +5,7 @@ module Messages
 
 import qualified Data.Text as T
 import Discord
+import Data.Maybe (mapMaybe)
 import qualified Data.List as List
 import qualified System.Random as Random
 import Meidovision
@@ -17,7 +18,7 @@ data MeidoResponse
 messages :: (RestChan, Gateway, z) -> Message -> IO ()
 messages dis receivedMessage =
     case (not $ userIsBot $ messageAuthor receivedMessage,
-          hasLinkToImage $ messageText receivedMessage) of
+          findImageFromMessage receivedMessage) of
         (True, Nothing) -> do
             rng <- Random.newStdGen
             case response receivedMessage rng of
@@ -139,14 +140,21 @@ hasAnyWordsStartingWith :: T.Text -> [T.Text] -> Bool
 hasAnyWordsStartingWith text =
     List.any (\prefix -> text `hasWordStartingWith` prefix)
 
-hasLinkToImage :: T.Text -> Maybe T.Text
-hasLinkToImage t =
-    case List.filter (\w -> T.isPrefixOf "http" w && 
-    (T.isSuffixOf ".png" w || T.isSuffixOf ".jpg" w ||
-     T.isSuffixOf ".jpeg" w || T.isSuffixOf ".gif" w)) 
-    $ T.words t of 
+findImageFromMessage :: Message -> Maybe T.Text
+findImageFromMessage m =
+    let
+        t = messageText m
+        attachmentUrls = fmap (T.pack . attachmentProxy) $ messageAttachments m
+    in
+    case List.filter (urlLinksToImage) $ attachmentUrls ++ T.words t of 
         [] -> Nothing
         x:_ -> Just (x)
+
+urlLinksToImage :: T.Text -> Bool
+urlLinksToImage w =
+    T.isPrefixOf "http" w && 
+    (T.isSuffixOf ".png" w || T.isSuffixOf ".jpg" w ||
+    T.isSuffixOf ".jpeg" w || T.isSuffixOf ".gif" w)
 
 tagInImage :: AnalyzeImageResponse -> T.Text -> Bool
 tagInImage analysis tag =
