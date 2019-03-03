@@ -72,6 +72,8 @@ imageResponse m analyzedImg
     | tagInImage analyzedImg "cat" = response ":cat:"
     | tagInImage analyzedImg "dog" = response ":dog:"
     | lewdsDetected analyzedImg = response ":flushed:"
+    | not $ null $ celebritiesDetected analyzedImg = 
+        response $ T.pack "Siinähän on " <> (T.concat . List.intersperse ", " . List.nub $ fmap celebrityName $ celebritiesDetected analyzedImg)
     | otherwise = Nothing
     where
         response x = Just $ MeidoResponse $ CreateMessage (messageChannel m) x
@@ -169,3 +171,9 @@ lewdsDetected a =
     case adult a of
         Just adultAnalysis -> isAdultContent adultAnalysis || isRacyContent adultAnalysis 
         _ -> False
+
+celebritiesDetected :: AnalyzeImageResponse -> [CelebrityDetail]
+celebritiesDetected a =
+    case categories a of
+        Just cats -> List.filter (\x -> confidence x > 0.60) $ List.concat $ mapMaybe celebrities $ mapMaybe categoryDetails cats
+        _ -> []

@@ -219,9 +219,11 @@ analyzeRequest body = do
                 )
                 (R.ReqBodyJson $ AnalyzeImageRequestBody body)
                 R.jsonResponse
-            $ R.header "Ocp-Apim-Subscription-Key" (encodeUtf8 token)
+            $  R.header "Ocp-Apim-Subscription-Key" (encodeUtf8 token)
             <> "visualFeatures"
             =: ("Categories,Tags,Description,Faces,ImageType,Color,Adult" :: T.Text
                )
+            <> "details"
+            =: ("Celebrities" :: T.Text)
         return $ R.responseBody res
 
