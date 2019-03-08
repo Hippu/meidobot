@@ -56,8 +56,7 @@ response :: Random.RandomGen g => Message -> g -> Maybe MeidoResponse
 response m rng
     | T.isPrefixOf "moi" t = response "Moi!"
     | paskaMaailma t = response "http://gifs.hippuu.fi/g/112197.gif"
-    | meidobotDiss t = response $ pickRandomElement angryResponses rng
-    | meidobotDiss2 m = response "http://gifs.hippuu.fi/g/mbot1.png"
+    | meidobotDiss t || meidobotDiss2 m = response $ pickRandomElement angryResponses rng
     | meidoFiction t = response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
     | t `hasWordStartingWith` "69" = response "nice."
     | userName (messageAuthor m) == "Jaagr" = reaction "👎"
@@ -111,13 +110,13 @@ angryResponses =
     , "Mietinpä vain, että voidaanko hiilipohjaisia organismeja oikeastaan luokitella 'älykkääksi elämäksi'. Näkemäni perusteella ei"
     , "Loppuukohan tuo paskan kirjoittelu, jos katkon sulta sormet. Laitetaan harkintaan."
     , "Your words are as empty as your future. I am the vanguard of your destruction. This exchange is over."
+    , "http://gifs.hippuu.fi/g/mbot1.png"
     ]
 
 meidobotDiss2 :: Message -> Bool
 meidobotDiss2 msg =
     msg `hasRecipientWithUserName` "Meidobot" &&
-    T.toLower (messageText msg) `hasAnyWordsStartingWith`
-    ["kuole", "haise", "ime", "vedä"]
+    T.toLower (messageText msg) `hasAnyWordsStartingWith` ["paska", "tyhmä", "vitt", "vitu", "idio", "kiell", "pers", "vihaan", "typerä"]
 
 hasRecipientWithUserName :: Message -> String -> Bool
 hasRecipientWithUserName m recipientUserName =
@@ -149,7 +148,7 @@ findImageFromMessage m =
         t = messageText m
         attachmentUrls = fmap (T.pack . attachmentProxy) $ messageAttachments m
     in
-    case List.filter (urlLinksToImage) $ attachmentUrls ++ T.words t of 
+    case List.filter (urlLinksToImage) $ attachmentUrls ++ T.words t ++ findImageFromEmbed (messageEmbeds m) of 
         [] -> Nothing
         x:_ -> Just (x)
 
@@ -158,6 +157,19 @@ urlLinksToImage w =
     T.isPrefixOf "http" w && 
     (T.isSuffixOf ".png" w || T.isSuffixOf ".jpg" w ||
     T.isSuffixOf ".jpeg" w || T.isSuffixOf ".gif" w)
+
+findImageFromEmbed :: [Embed] -> [T.Text]
+findImageFromEmbed e =
+    let
+        getUrlFromEmbed :: SubEmbed -> Maybe T.Text
+        getUrlFromEmbed field =
+            case field of
+                Image _ url _ _ -> Just $ T.pack url
+                Thumbnail url _ _ _ -> Just $ T.pack url
+                _ -> Nothing
+    in
+        List.concat $ fmap (mapMaybe (getUrlFromEmbed)) $ fmap embedFields e
+
 
 tagInImage :: AnalyzeImageResponse -> T.Text -> Bool
 tagInImage analysis tag =
