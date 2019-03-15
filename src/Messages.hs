@@ -9,10 +9,12 @@ import Data.Maybe (mapMaybe)
 import qualified Data.List as List
 import qualified System.Random as Random
 import Meidovision
+import Translation (translateToFi, translationResponseToText, Translation)
 
 data MeidoResponse 
     = MeidoResponse (ChannelRequest Message)
     | MeidoReaction (ChannelRequest ())
+    | MeidoTranslate (T.Text)
 --    | MeidoResponseAndReaction Message T.Text
 
 messages :: (RestChan, Gateway, z) -> Message -> IO ()
@@ -26,11 +28,18 @@ messages dis receivedMessage =
                     res <- restCall dis request
                     print res
                     putStrLn ""
+                Just (MeidoReaction reaction) -> do
+                    res <- restCall dis reaction
+                    pure ()
                 _ -> pure ()
         (True, Just img) -> do
             imgAnalysis <- analyzeRequest img
             print imgAnalysis
             case imageResponse receivedMessage imgAnalysis of
+                Just (MeidoTranslate t) -> do
+                    translation <- translateToFi t
+                    res <- restCall dis $ CreateMessage (messageChannel receivedMessage) (translationResponseToText translation)
+                    print res
                 Just (MeidoResponse request) -> do
                     res <- restCall dis request
                     print res
@@ -68,6 +77,15 @@ response m rng
 
 imageResponse :: Message -> AnalyzeImageResponse -> Maybe MeidoResponse
 imageResponse m analyzedImg
+    | t `hasWordStartingWith` "kuvaile" = 
+        case description analyzedImg of
+            Just (AnalyzeImageDescription _ caps) ->
+                if not $ null caps then
+                    Just $ MeidoTranslate $ List.head $ fmap captionText caps
+                else
+                    response "???"
+            _ -> response "???"
+
     | tagInImage analyzedImg "cat" = response ":cat:"
     | tagInImage analyzedImg "dog" = response ":dog:"
     | lewdsDetected analyzedImg = response ":flushed:"
@@ -76,6 +94,7 @@ imageResponse m analyzedImg
     | otherwise = Nothing
     where
         response x = Just $ MeidoResponse $ CreateMessage (messageChannel m) x
+        t = T.toLower $ messageText m
 
 pickRandomElement :: Random.RandomGen g => [a] -> g -> a
 pickRandomElement l rng =
