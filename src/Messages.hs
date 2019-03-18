@@ -72,7 +72,7 @@ response m rng
 
 imageResponse :: Message -> AnalyzeImageResponse -> Maybe MeidoResponse
 imageResponse m analyzedImg
-    | t `hasWordStartingWith` "kuvaile" = 
+    | t `hasAnyWordsStartingWith` ["kuvaile", "selitä"] = 
         case description analyzedImg of
             Just (AnalyzeImageDescription _ caps) ->
                 if not $ null caps then
