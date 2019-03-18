@@ -10,7 +10,7 @@ import qualified Data.List as List
 import qualified System.Random as Random
 import Meidovision
 import Translation (translateToFi, translationResponseToText, Translation)
-import System.Process (readProcess)
+import System.Process
 
 data MeidoResponse 
     = MeidoResponse (ChannelRequest Message)
@@ -93,10 +93,9 @@ imageResponse m analyzedImg
 
 updateFactorio :: IO String
 updateFactorio =
-    readProcess 
-        "sh" 
-        ["-c", "systemctl --user stop factorio && /home/hippu/factorio/update_factorio.sh && systemctl --user start factorio"]
-        []
+    readCreateProcess 
+        (shell "systemctl --user stop factorio && ./home/hippu/factorio/update_factorio.sh && systemctl --user start factorio")
+        ""
 
 pickRandomElement :: Random.RandomGen g => [a] -> g -> a
 pickRandomElement l rng =
