@@ -95,7 +95,7 @@ updateFactorio :: IO String
 updateFactorio =
     readProcess 
         "sh" 
-        ["-c", "\"systemctl --user stop factorio && ~/factorio/update_factorio.sh && systemctl --user start factorio\""]
+        ["-c", "\"systemctl --user stop factorio && /home/hippu/factorio/update_factorio.sh && systemctl --user start factorio\""]
         []
 
 pickRandomElement :: Random.RandomGen g => [a] -> g -> a
