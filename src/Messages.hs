@@ -10,11 +10,13 @@ import qualified Data.List as List
 import qualified System.Random as Random
 import Meidovision
 import Translation (translateToFi, translationResponseToText, Translation)
+import System.Process (readProcess)
 
 data MeidoResponse 
     = MeidoResponse (ChannelRequest Message)
     | MeidoReaction (ChannelRequest ())
     | MeidoTranslate (T.Text)
+    | UpdateFactorio
 --    | MeidoResponseAndReaction Message T.Text
 
 messages :: (RestChan, Gateway, z) -> Message -> IO ()
@@ -30,6 +32,10 @@ messages dis receivedMessage =
                     putStrLn ""
                 Just (MeidoReaction reaction) -> do
                     res <- restCall dis reaction
+                    pure ()
+                Just UpdateFactorio -> do
+                    result <- updateFactorio
+                    restCall dis $ CreateMessage (messageChannel receivedMessage) (T.pack result)
                     pure ()
                 _ -> pure ()
         (True, Just img) -> do
@@ -48,18 +54,6 @@ messages dis receivedMessage =
             putStrLn ""
         _ -> pure ()
 
-{- 
-messageAuthorIsNotBot :: Message -> Bool
-messageAuthorIsNotBot m =
-    case messageAuthor m of
-        Right user -> not $ userIsBot user
-        _ -> True
-
-messageAuthorHasUsername :: Message -> String -> Bool
-messageAuthorHasUsername m name =
-    case messageAuthor m of
-        Right user -> (userName user) == name
-        _ -> False -}
 
 response :: Random.RandomGen g => Message -> g -> Maybe MeidoResponse
 response m rng
@@ -69,6 +63,7 @@ response m rng
     | meidoFiction t = response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
     | t `hasWordStartingWith` "69" = response "nice."
     | userName (messageAuthor m) == "Jaagr" = reaction "👎"
+    | m `hasRecipientWithUserName` "Meidobot" && hasAllWords ["päivitä", "factorio"] t = Just $ UpdateFactorio
     | otherwise = Nothing
     where
         t = T.toLower $ messageText m
@@ -95,6 +90,13 @@ imageResponse m analyzedImg
     where
         response x = Just $ MeidoResponse $ CreateMessage (messageChannel m) x
         t = T.toLower $ messageText m
+
+updateFactorio :: IO String
+updateFactorio =
+    readProcess 
+        "sh" 
+        ["-c", "\"systemctl --user stop factorio && ~/factorio/update_factorio.sh && systemctl --user start factorio\""]
+        []
 
 pickRandomElement :: Random.RandomGen g => [a] -> g -> a
 pickRandomElement l rng =
@@ -187,7 +189,7 @@ findImageFromEmbed e =
                 Thumbnail url _ _ _ -> Just $ T.pack url
                 _ -> Nothing
     in
-        List.concat $ fmap (mapMaybe (getUrlFromEmbed)) $ fmap embedFields e
+        List.concat $ fmap (mapMaybe (getUrlFromEmbed) . embedFields) e
 
 
 tagInImage :: AnalyzeImageResponse -> T.Text -> Bool
@@ -206,5 +208,6 @@ lewdsDetected a =
 celebritiesDetected :: AnalyzeImageResponse -> [CelebrityDetail]
 celebritiesDetected a =
     case categories a of
-        Just cats -> List.filter (\x -> confidence x > 0.60) $ List.concat $ mapMaybe celebrities $ mapMaybe categoryDetails cats
+        Just cats -> 
+            List.filter (\x -> confidence x > 0.60) $ List.concat $ mapMaybe celebrities $ mapMaybe categoryDetails cats
         _ -> []

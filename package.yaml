@@ -29,6 +29,7 @@ dependencies:
 - random
 - req
 - data-default-class
+- process
 
 library:
   source-dirs: src
