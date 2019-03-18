@@ -94,8 +94,8 @@ imageResponse m analyzedImg
 updateFactorio :: IO String
 updateFactorio =
     readProcess 
-        "sh" 
-        ["-c", "\"systemctl --user stop factorio && /home/hippu/factorio/update_factorio.sh && systemctl --user start factorio\""]
+        "/bin/bash" 
+        ["-c", "\"/bin/systemctl --user stop factorio && /home/hippu/factorio/update_factorio.sh && /bin/systemctl --user start factorio\""]
         []
 
 pickRandomElement :: Random.RandomGen g => [a] -> g -> a
