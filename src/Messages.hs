@@ -8,9 +8,11 @@ import Discord
 import Data.Maybe (mapMaybe)
 import qualified Data.List as List
 import qualified System.Random as Random
+import Network.HTTP.Req
 import Meidovision
 import Translation (translateToFi, translationResponseToText, Translation)
 import System.Process
+import           Control.Monad.IO.Class
 
 data MeidoResponse 
     = MeidoResponse (ChannelRequest Message)
@@ -39,18 +41,20 @@ messages dis receivedMessage =
                     pure ()
                 _ -> pure ()
         (True, Just img) -> do
-            imgAnalysis <- analyzeRequest img
-            print imgAnalysis
-            case imageResponse receivedMessage imgAnalysis of
-                Just (MeidoTranslate t) -> do
-                    translation <- translateToFi t
-                    res <- restCall dis $ CreateMessage (messageChannel receivedMessage) (translationResponseToText translation)
-                    print res
-                Just (MeidoResponse request) -> do
-                    res <- restCall dis request
-                    print res
-                    putStrLn ""
-                _ -> pure ()
+            analysisResult <- analyzeRequest img
+            case analysisResult of
+                Right imgAnalysis ->
+                    case imageResponse receivedMessage imgAnalysis of
+                        Just (MeidoTranslate t) -> do
+                            translation <- translateToFi t
+                            res <- restCall dis $ CreateMessage (messageChannel receivedMessage) (translationResponseToText translation)
+                            print res
+                        Just (MeidoResponse request) -> do
+                            res <- restCall dis request
+                            print res
+                            putStrLn ""
+                        _ -> pure ()
+                _ -> print analysisResult
             putStrLn ""
         _ -> pure ()
 

@@ -2,6 +2,7 @@
 module Meidovision where
 
 import           Control.Monad
+import           Control.Exception
 import           Control.Monad.IO.Class
 import           Data.Aeson
 import           Data.Aeson.Types
@@ -205,10 +206,10 @@ data AnalyzeImageRequestBody =
 
 instance ToJSON AnalyzeImageRequestBody
 
-analyzeRequest :: T.Text -> IO AnalyzeImageResponse
+analyzeRequest :: T.Text -> IO (Either R.HttpException AnalyzeImageResponse)
 analyzeRequest body = do
-    token <- T.strip <$> TIO.readFile "./secrets/meidovision.secret"
-    R.runReq def $ do
+    token  <- T.strip <$> TIO.readFile "./secrets/meidovision.secret"
+    result <- try $ R.runReq def $ do
         res <-
             R.req
                 R.POST
@@ -226,4 +227,5 @@ analyzeRequest body = do
             <> "details"
             =: ("Celebrities" :: T.Text)
         return $ R.responseBody res
+    return result
 
