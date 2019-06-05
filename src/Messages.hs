@@ -68,6 +68,7 @@ response m rng
     | t `hasWordStartingWith` "69" = response "nice."
     | userName (messageAuthor m) == "Jaagr" = reaction "👎"
     | m `hasRecipientWithUserName` "Meidobot" && hasAllWords ["päivitä", "factorio"] t = Just $ UpdateFactorio
+    | m `hasRecipientWithUserName` "Meidobot" = response $ pickRandomElement unknownMsgResponses rng
     | otherwise = Nothing
     where
         t = T.toLower $ messageText m
@@ -136,6 +137,19 @@ angryResponses =
     , "Your words are as empty as your future. I am the vanguard of your destruction. This exchange is over."
     , "http://gifs.hippuu.fi/g/mbot1.png"
     ]
+
+unknownMsgResponses :: [T.Text]
+unknownMsgResponses =
+    [ "Miks oot tollanen"
+    , "Mitä jos ei"
+    , "En ymmärrä"
+    , "Jos haluat jotain, niin tee se itse"
+    , "OK."
+    , "Asia selvä."
+    , "Joo..."
+    , "Wau"
+    , "Aha."
+    , "Mutsis on."]
 
 meidobotDiss2 :: Message -> Bool
 meidobotDiss2 msg =
