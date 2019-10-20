@@ -11,8 +11,14 @@ import           GHC.Generics
 import           Network.HTTP.Req               ( (=:) )
 import qualified Network.HTTP.Req              as R
 import qualified Data.Text                     as T
+import qualified Data.List as List
+import qualified Data.Maybe as Maybe
 import qualified Data.Text.IO                  as TIO
-import           Data.Text.Encoding             ( encodeUtf8 )
+import qualified Data.ByteString               as B
+import           Data.Text.Encoding             ( encodeUtf8
+                                                , decodeUtf8With
+                                                )
+import           Data.Text.Encoding.Error       ( lenientDecode )
 
 data AnalyzeImageRequest =
     AnalyzeImageRequest
@@ -206,26 +212,50 @@ data AnalyzeImageRequestBody =
 
 instance ToJSON AnalyzeImageRequestBody
 
-analyzeRequest :: T.Text -> IO (Either R.HttpException AnalyzeImageResponse)
-analyzeRequest body = do
-    token  <- T.strip <$> TIO.readFile "./secrets/meidovision.secret"
-    result <- try $ R.runReq def $ do
-        res <-
-            R.req
-                R.POST
-                (    R.https "northeurope.api.cognitive.microsoft.com"
-                R./: "vision"
-                R./: "v1.0"
-                R./: "analyze"
-                )
-                (R.ReqBodyJson $ AnalyzeImageRequestBody body)
-                R.jsonResponse
-            $  R.header "Ocp-Apim-Subscription-Key" (encodeUtf8 token)
-            <> "visualFeatures"
-            =: ("Categories,Tags,Description,Faces,ImageType,Color,Adult" :: T.Text
-               )
-            <> "details"
-            =: ("Celebrities" :: T.Text)
-        return $ R.responseBody res
-    return result
+linkIsLegitImage :: T.Text -> IO Bool
+linkIsLegitImage link = do
+    case
+            ( R.parseUrlHttp (encodeUtf8 link)
+            , R.parseUrlHttps (encodeUtf8 link)
+            )
+        of
+            (Just (url, options), _) -> do
+                headers <- R.runReq def $ do
+                    res <- R.req R.GET url R.NoReqBody R.ignoreResponse options
+                    return $ R.responseHeader res "Content-Type"
+                return $ case headers of
+                    Just mime ->
+                        "image/"
+                            `T.isPrefixOf` decodeUtf8With lenientDecode mime
+                    _ -> False
+            (_, Just (url, options)) -> do
+                headers <- R.runReq def $ do
+                    res <- R.req R.GET url R.NoReqBody R.ignoreResponse options
+                    return $ R.responseHeader res "Content-Type"
+                return True
+            _ -> return False
+
+
+analyzeRequest :: T.Text -> T.Text -> R.Req (R.JsonResponse AnalyzeImageResponse)
+analyzeRequest token url =
+    R.req
+            R.POST
+            (    R.https "northeurope.api.cognitive.microsoft.com"
+            R./: "vision"
+            R./: "v1.0"
+            R./: "analyze"
+            )
+            (R.ReqBodyJson $ AnalyzeImageRequestBody url)
+            R.jsonResponse
+        $  R.header "Ocp-Apim-Subscription-Key" (encodeUtf8 token)
+        <> "visualFeatures"
+        =: ("Categories,Tags,Description,Faces,ImageType,Color,Adult" :: T.Text)
+        <> "details"
+        =: ("Celebrities" :: T.Text)
+
+executeAnalyzeRequestWith :: T.Text -> IO (Either R.HttpException AnalyzeImageResponse)
+executeAnalyzeRequestWith body =
+    T.strip <$> TIO.readFile "./secrets/meidovision.secret" >>= \token ->
+        try $ R.runReq def $ analyzeRequest token body >>= \res ->
+            return $ R.responseBody res
 

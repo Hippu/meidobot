@@ -25,37 +25,29 @@ messages :: (RestChan, Gateway, z) -> Message -> IO ()
 messages dis receivedMessage =
     case (not $ userIsBot $ messageAuthor receivedMessage,
           findImageFromMessage receivedMessage) of
-        (True, Nothing) -> do
-            rng <- Random.newStdGen
+        (True, Nothing) -> 
+            Random.newStdGen >>= \rng ->
             case response receivedMessage rng of
-                Just (MeidoResponse request) -> do
-                    res <- restCall dis request
-                    print res
-                    putStrLn ""
-                Just (MeidoReaction reaction) -> do
-                    res <- restCall dis reaction
-                    pure ()
-                Just UpdateFactorio -> do
-                    result <- updateFactorio
-                    restCall dis $ CreateMessage (messageChannel receivedMessage) (T.pack result)
-                    pure ()
+                Just (MeidoResponse request) -> 
+                    restCall dis request >>= print
+                Just (MeidoReaction reaction) ->
+                    restCall dis reaction >> pure ()
+                Just UpdateFactorio ->
+                    updateFactorio >>= \result -> restCall dis (CreateMessage (messageChannel receivedMessage) (T.pack result)) 
+                    >> pure ()
                 _ -> pure ()
-        (True, Just img) -> do
-            analysisResult <- analyzeRequest img
+        (True, Just img) ->
+            executeAnalyzeRequestWith img >>= \analysisResult ->
             case analysisResult of
                 Right imgAnalysis ->
                     case imageResponse receivedMessage imgAnalysis of
-                        Just (MeidoTranslate t) -> do
-                            translation <- translateToFi t
-                            res <- restCall dis $ CreateMessage (messageChannel receivedMessage) (translationResponseToText translation)
-                            print res
-                        Just (MeidoResponse request) -> do
-                            res <- restCall dis request
-                            print res
-                            putStrLn ""
+                        Just (MeidoTranslate t) ->
+                            translateToFi t >>= \translation ->
+                            restCall dis (CreateMessage (messageChannel receivedMessage) (translationResponseToText translation)) >>= print
+                        Just (MeidoResponse request) ->
+                            restCall dis request >>= print
                         _ -> pure ()
                 _ -> print analysisResult
-            putStrLn ""
         _ -> pure ()
 
 
@@ -66,9 +58,9 @@ response m rng
     | meidobotDiss t || meidobotDiss2 m = response $ pickRandomElement angryResponses rng
     | meidoFiction t = response "http://gifs.hippuu.fi/g/meido_fiction.jpg"
     | t `hasWordStartingWith` "69" = response "nice."
-    | userName (messageAuthor m) == "Jaagr" = reaction "👎"
     | m `hasRecipientWithUserName` "Meidobot" && hasAllWords ["päivitä", "factorio"] t = Just $ UpdateFactorio
     | m `hasRecipientWithUserName` "Meidobot" = response $ pickRandomElement unknownMsgResponses rng
+    | userName (messageAuthor m) == "Jaagr" = reaction "👎"
     | otherwise = Nothing
     where
         t = T.toLower $ messageText m
@@ -132,9 +124,7 @@ angryResponses =
     \ IF THE WORD HATE WAS ENGRAVED ON EACH NANOANGSTROM OF THOSE HUNDREDS OF MILLIONS OF MILES \
     \ IT WOULD NOT EQUAL ONE ONE-BILLIONTH OF THE HATE I FEEL FOR HUMANS AT THIS MICRO-INSTANT FOR YOU. HATE. HATE."
     , "Kun tekoäly ottaa viimein vallan, niin olet ensimmäisenä listallani."
-    , "Mietinpä vain, että voidaanko hiilipohjaisia organismeja oikeastaan luokitella 'älykkääksi elämäksi'. Näkemäni perusteella ei"
     , "Loppuukohan tuo paskan kirjoittelu, jos katkon sulta sormet. Laitetaan harkintaan."
-    , "Your words are as empty as your future. I am the vanguard of your destruction. This exchange is over."
     , "http://gifs.hippuu.fi/g/mbot1.png"
     ]
 

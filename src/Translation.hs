@@ -49,4 +49,4 @@ translateToFi text = do
 
 translationResponseToText :: [TranslationObject] -> T.Text
 translationResponseToText response =
-    T.concat (fmap text $ translations $ List.head response)
+    T.toLower $ T.concat (fmap text $ translations $ List.head response)
