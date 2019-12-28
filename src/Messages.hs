@@ -5,6 +5,8 @@ module Messages
 
 import qualified Data.Text as T
 import Discord
+import Discord.Types
+import Discord.Requests
 import Data.Maybe (mapMaybe)
 import qualified Data.List as List
 import qualified System.Random as Random
@@ -21,7 +23,7 @@ data MeidoResponse
     | UpdateFactorio
 --    | MeidoResponseAndReaction Message T.Text
 
-messages :: (RestChan, Gateway, z) -> Message -> IO ()
+messages :: DiscordHandle -> Message -> IO ()
 messages dis receivedMessage =
     case (not $ userIsBot $ messageAuthor receivedMessage,
           findImageFromMessage receivedMessage) of
@@ -146,7 +148,7 @@ meidobotDiss2 msg =
     msg `hasRecipientWithUserName` "Meidobot" &&
     T.toLower (messageText msg) `hasAnyWordsStartingWith` ["paska", "tyhmä", "vitt", "vitu", "idio", "kiell", "pers", "vihaan", "typerä"]
 
-hasRecipientWithUserName :: Message -> String -> Bool
+hasRecipientWithUserName :: Message -> T.Text -> Bool
 hasRecipientWithUserName m recipientUserName =
     List.elem recipientUserName $ userName <$> messageMentions m
 
@@ -174,7 +176,7 @@ findImageFromMessage :: Message -> Maybe T.Text
 findImageFromMessage m =
     let
         t = messageText m
-        attachmentUrls = fmap (T.pack . attachmentProxy) $ messageAttachments m
+        attachmentUrls = fmap attachmentProxy $ messageAttachments m
     in
     case List.filter (urlLinksToImage) $ attachmentUrls ++ T.words t ++ findImageFromEmbed (messageEmbeds m) of 
         [] -> Nothing
@@ -192,8 +194,8 @@ findImageFromEmbed e =
         getUrlFromEmbed :: SubEmbed -> Maybe T.Text
         getUrlFromEmbed field =
             case field of
-                Image _ url _ _ -> Just $ T.pack url
-                Thumbnail url _ _ _ -> Just $ T.pack url
+                Image _ url _ _ -> Just url
+                Thumbnail url _ _ _ -> Just url
                 _ -> Nothing
     in
         List.concat $ fmap (mapMaybe (getUrlFromEmbed) . embedFields) e

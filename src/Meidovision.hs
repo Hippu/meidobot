@@ -220,7 +220,7 @@ linkIsLegitImage link = do
             )
         of
             (Just (url, options), _) -> do
-                headers <- R.runReq def $ do
+                headers <- R.runReq R.defaultHttpConfig $ do
                     res <- R.req R.GET url R.NoReqBody R.ignoreResponse options
                     return $ R.responseHeader res "Content-Type"
                 return $ case headers of
@@ -229,7 +229,7 @@ linkIsLegitImage link = do
                             `T.isPrefixOf` decodeUtf8With lenientDecode mime
                     _ -> False
             (_, Just (url, options)) -> do
-                headers <- R.runReq def $ do
+                headers <- R.runReq R.defaultHttpConfig $ do
                     res <- R.req R.GET url R.NoReqBody R.ignoreResponse options
                     return $ R.responseHeader res "Content-Type"
                 return True
@@ -256,6 +256,6 @@ analyzeRequest token url =
 executeAnalyzeRequestWith :: T.Text -> IO (Either R.HttpException AnalyzeImageResponse)
 executeAnalyzeRequestWith body =
     T.strip <$> TIO.readFile "./secrets/meidovision.secret" >>= \token ->
-        try $ R.runReq def $ analyzeRequest token body >>= \res ->
+        try $ R.runReq R.defaultHttpConfig $ analyzeRequest token body >>= \res ->
             return $ R.responseBody res
 

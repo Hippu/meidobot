@@ -43,7 +43,7 @@ translateToFi :: T.Text -> IO [TranslationObject]
 translateToFi text = do
     token <- T.strip <$> TIO.readFile "./secrets/translation.secret"
     print $ "translating " <> text
-    runReq def $ do
+    runReq defaultHttpConfig $ do
         res <- translateRequest token text
         return $ responseBody res
 
