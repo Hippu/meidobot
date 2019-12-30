@@ -16,10 +16,10 @@ import Translation (translateToFi, translationResponseToText, Translation)
 import System.Process
 import           Control.Monad.IO.Class
 
-data MeidoResponse 
+data MeidoResponse
     = MeidoResponse (ChannelRequest Message)
     | MeidoReaction (ChannelRequest ())
-    | MeidoTranslate (T.Text)
+    | MeidoTranslate T.Text
     | UpdateFactorio
 --    | MeidoResponseAndReaction Message T.Text
 
@@ -27,15 +27,15 @@ messages :: DiscordHandle -> Message -> IO ()
 messages dis receivedMessage =
     case (not $ userIsBot $ messageAuthor receivedMessage,
           findImageFromMessage receivedMessage) of
-        (True, Nothing) -> 
+        (True, Nothing) ->
             Random.newStdGen >>= \rng ->
             case response receivedMessage rng of
-                Just (MeidoResponse request) -> 
+                Just (MeidoResponse request) ->
                     restCall dis request >>= print
                 Just (MeidoReaction reaction) ->
                     restCall dis reaction >> pure ()
                 Just UpdateFactorio ->
-                    updateFactorio >>= \result -> restCall dis (CreateMessage (messageChannel receivedMessage) (T.pack result)) 
+                    updateFactorio >>= \result -> restCall dis (CreateMessage (messageChannel receivedMessage) (T.pack result))
                     >> pure ()
                 _ -> pure ()
         (True, Just img) ->
@@ -71,7 +71,7 @@ response m rng
 
 imageResponse :: Message -> AnalyzeImageResponse -> Maybe MeidoResponse
 imageResponse m analyzedImg
-    | t `hasAnyWordsStartingWith` ["kuvaile", "selitä"] = 
+    | t `hasAnyWordsStartingWith` ["kuvaile", "selitä"] =
         case description analyzedImg of
             Just (AnalyzeImageDescription _ caps) ->
                 if not $ null caps then
@@ -83,7 +83,7 @@ imageResponse m analyzedImg
     | tagInImage analyzedImg "cat" = response ":cat:"
     | tagInImage analyzedImg "dog" = response ":dog:"
     | lewdsDetected analyzedImg = response ":flushed:"
-    | not $ null $ celebritiesDetected analyzedImg = 
+    | not $ null $ celebritiesDetected analyzedImg =
         response $ T.pack "Siinähän on " <> (T.concat . List.intersperse ", " . List.nub $ fmap celebrityName $ celebritiesDetected analyzedImg)
     | otherwise = Nothing
     where
@@ -92,7 +92,7 @@ imageResponse m analyzedImg
 
 updateFactorio :: IO String
 updateFactorio =
-    readCreateProcess 
+    readCreateProcess
         (shell "/home/hippu/factorio/update_factorio.sh")
         ""
 
@@ -106,7 +106,7 @@ paskaMaailma =
 
 meidoFiction :: T.Text -> Bool
 meidoFiction t =
-    t == "wat" || t == "what" || t == "mitä" 
+    t == "wat" || t == "what" || t == "mitä"
     || hasAllWords ["look", "like", "bitch"] t
     || hasAllWords ["english", "motherfucker"] t
     || hasAllWords ["ezekiel", "25:17"] t
@@ -178,13 +178,13 @@ findImageFromMessage m =
         t = messageText m
         attachmentUrls = fmap attachmentProxy $ messageAttachments m
     in
-    case List.filter (urlLinksToImage) $ attachmentUrls ++ T.words t ++ findImageFromEmbed (messageEmbeds m) of 
+    case List.filter urlLinksToImage $ attachmentUrls ++ T.words t ++ findImageFromEmbed (messageEmbeds m) of
         [] -> Nothing
-        x:_ -> Just (x)
+        x:_ -> Just x
 
 urlLinksToImage :: T.Text -> Bool
 urlLinksToImage w =
-    T.isPrefixOf "http" w && 
+    T.isPrefixOf "http" w &&
     (T.isSuffixOf ".png" w || T.isSuffixOf ".jpg" w ||
     T.isSuffixOf ".jpeg" w || T.isSuffixOf ".gif" w)
 
@@ -198,7 +198,7 @@ findImageFromEmbed e =
                 Thumbnail url _ _ _ -> Just url
                 _ -> Nothing
     in
-        List.concat $ fmap (mapMaybe (getUrlFromEmbed) . embedFields) e
+        concatMap (mapMaybe getUrlFromEmbed . embedFields) e
 
 
 tagInImage :: AnalyzeImageResponse -> T.Text -> Bool
@@ -211,12 +211,12 @@ tagInImage analysis tag =
 lewdsDetected :: AnalyzeImageResponse -> Bool
 lewdsDetected a =
     case adult a of
-        Just adultAnalysis -> isAdultContent adultAnalysis || isRacyContent adultAnalysis 
+        Just adultAnalysis -> isAdultContent adultAnalysis || isRacyContent adultAnalysis
         _ -> False
 
 celebritiesDetected :: AnalyzeImageResponse -> [CelebrityDetail]
 celebritiesDetected a =
     case categories a of
-        Just cats -> 
+        Just cats ->
             List.filter (\x -> confidence x > 0.60) $ List.concat $ mapMaybe celebrities $ mapMaybe categoryDetails cats
         _ -> []
