@@ -34,11 +34,11 @@ resolver: lts-13.29
 #  - wai
 packages:
 - .
+- ./discord-haskell
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
 extra-deps:
-- ./discord-haskell
 - emoji-0.1.0.2
 - http-client-0.6.4
 - req-2.1.0

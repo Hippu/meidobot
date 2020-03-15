@@ -1,13 +1,14 @@
-{-# LANGUAGE OverloadedStrings #-}
+﻿{-# LANGUAGE OverloadedStrings #-}
 module Messages
     (messages
     ) where
 
 import qualified Data.Text as T
+import Control.Applicative ((<$>))
 import Discord
 import Discord.Types
 import Discord.Requests
-import Data.Maybe (mapMaybe)
+import Data.Maybe as Maybe
 import qualified Data.List as List
 import qualified System.Random as Random
 import Network.HTTP.Req
@@ -158,7 +159,7 @@ hasWord word text =
 
 hasWordStartingWith :: T.Text -> T.Text -> Bool
 hasWordStartingWith text prefix =
-    List.any (\word -> prefix `T.isPrefixOf` word) $ T.words text
+    List.any (prefix `T.isPrefixOf`) $ T.words text
 
 hasAllWords :: [T.Text] -> T.Text -> Bool
 hasAllWords words text =
@@ -170,13 +171,13 @@ hasAnyWords words text =
 
 hasAnyWordsStartingWith :: T.Text -> [T.Text] -> Bool
 hasAnyWordsStartingWith text =
-    List.any (\prefix -> text `hasWordStartingWith` prefix)
+    List.any (text `hasWordStartingWith`)
 
 findImageFromMessage :: Message -> Maybe T.Text
 findImageFromMessage m =
     let
         t = messageText m
-        attachmentUrls = fmap attachmentProxy $ messageAttachments m
+        attachmentUrls = attachmentProxy <$> messageAttachments m
     in
     case List.filter urlLinksToImage $ attachmentUrls ++ T.words t ++ findImageFromEmbed (messageEmbeds m) of
         [] -> Nothing
@@ -189,16 +190,8 @@ urlLinksToImage w =
     T.isSuffixOf ".jpeg" w || T.isSuffixOf ".gif" w)
 
 findImageFromEmbed :: [Embed] -> [T.Text]
-findImageFromEmbed e =
-    let
-        getUrlFromEmbed :: SubEmbed -> Maybe T.Text
-        getUrlFromEmbed field =
-            case field of
-                Image _ url _ _ -> Just url
-                Thumbnail url _ _ _ -> Just url
-                _ -> Nothing
-    in
-        concatMap (mapMaybe getUrlFromEmbed . embedFields) e
+findImageFromEmbed embeds =
+    Maybe.catMaybes . Maybe.catMaybes $ concatMap (\e -> [ embedImageUrl <$> embedImage e, embedThumbnailUrl <$> embedThumbnail e]) embeds
 
 
 tagInImage :: AnalyzeImageResponse -> T.Text -> Bool

@@ -4,6 +4,7 @@ module Meidovision where
 import           Control.Monad
 import           Control.Exception
 import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Class      ( lift )
 import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Default.Class
@@ -11,8 +12,8 @@ import           GHC.Generics
 import           Network.HTTP.Req               ( (=:) )
 import qualified Network.HTTP.Req              as R
 import qualified Data.Text                     as T
-import qualified Data.List as List
-import qualified Data.Maybe as Maybe
+import qualified Data.List                     as List
+import qualified Data.Maybe                    as Maybe
 import qualified Data.Text.IO                  as TIO
 import qualified Data.ByteString               as B
 import           Data.Text.Encoding             ( encodeUtf8
@@ -51,17 +52,17 @@ data AnalyzeImageResponse =
     deriving (Show)
 
 instance FromJSON AnalyzeImageResponse where
-    parseJSON = withObject "AnalyzeImage" $ \o -> do
-        requestId   <- o .: "requestId"
-        categories  <- o .:? "categories"
-        adult       <- o .:? "adult"
-        tags        <- o .:? "tags"
-        description <- o .:? "description"
-        metadata    <- o .: "metadata"
-        faces       <- o .:? "faces"
-        color       <- o .:? "color"
-        imageType   <- o .:? "imageType"
-        return AnalyzeImageResponse { .. }
+  parseJSON = withObject "AnalyzeImage" $ \o -> do
+    requestId   <- o .: "requestId"
+    categories  <- o .:? "categories"
+    adult       <- o .:? "adult"
+    tags        <- o .:? "tags"
+    description <- o .:? "description"
+    metadata    <- o .: "metadata"
+    faces       <- o .:? "faces"
+    color       <- o .:? "color"
+    imageType   <- o .:? "imageType"
+    return AnalyzeImageResponse { .. }
 
 data AnalyzeImageResponseError =
     AnalyzeImageResponseError
@@ -77,11 +78,11 @@ data AnalyzeImageCategory =
     deriving (Show)
 
 instance FromJSON AnalyzeImageCategory where
-    parseJSON = withObject "category" $ \o -> do
-        categoryName    <- o .: "name"
-        score           <- o .: "score"
-        categoryDetails <- o .:? "detail"
-        return AnalyzeImageCategory { .. }
+  parseJSON = withObject "category" $ \o -> do
+    categoryName    <- o .: "name"
+    score           <- o .: "score"
+    categoryDetails <- o .:? "detail"
+    return AnalyzeImageCategory { .. }
 
 data Details =
     Details
@@ -90,10 +91,10 @@ data Details =
     } deriving (Show)
 
 instance FromJSON Details where
-    parseJSON = withObject "detail" $ \o -> do
-        celebrities <- o .:? "celebrities"
-        landmarks   <- o .:? "landmarks"
-        return Details { .. }
+  parseJSON = withObject "detail" $ \o -> do
+    celebrities <- o .:? "celebrities"
+    landmarks   <- o .:? "landmarks"
+    return Details { .. }
 
 data CelebrityDetail =
     CelebrityDetail
@@ -103,10 +104,10 @@ data CelebrityDetail =
     deriving (Show)
 
 instance FromJSON CelebrityDetail where
-    parseJSON = withObject "celebrity" $ \o -> do
-        celebrityName <- o .: "name"
-        confidence    <- o .: "confidence"
-        return CelebrityDetail { .. }
+  parseJSON = withObject "celebrity" $ \o -> do
+    celebrityName <- o .: "name"
+    confidence    <- o .: "confidence"
+    return CelebrityDetail { .. }
 
 data LandmarkDetail =
     LandmarkDetail
@@ -115,10 +116,10 @@ data LandmarkDetail =
     deriving (Show)
 
 instance FromJSON LandmarkDetail where
-    parseJSON = withObject "landmark" $ \o -> do
-        landmarkName       <- o .: "name"
-        landmarkConfidence <- o .: "confidence"
-        return LandmarkDetail { .. }
+  parseJSON = withObject "landmark" $ \o -> do
+    landmarkName       <- o .: "name"
+    landmarkConfidence <- o .: "confidence"
+    return LandmarkDetail { .. }
 
 
 data AnalyzeImageAdult =
@@ -138,10 +139,10 @@ data AnalyzeImageTag =
     deriving (Show)
 
 instance FromJSON AnalyzeImageTag where
-    parseJSON = withObject "tag" $ \o -> do
-        tagName       <- o .: "name"
-        tagConfidence <- o .: "confidence"
-        return AnalyzeImageTag { .. }
+  parseJSON = withObject "tag" $ \o -> do
+    tagName       <- o .: "name"
+    tagConfidence <- o .: "confidence"
+    return AnalyzeImageTag { .. }
 
 data AnalyzeImageDescription =
     AnalyzeImageDescription
@@ -150,10 +151,10 @@ data AnalyzeImageDescription =
     deriving (Show)
 
 instance FromJSON AnalyzeImageDescription where
-    parseJSON = withObject "description" $ \o -> do
-        descriptionTags <- o .: "tags"
-        captions        <- o .: "captions"
-        return AnalyzeImageDescription { .. }
+  parseJSON = withObject "description" $ \o -> do
+    descriptionTags <- o .: "tags"
+    captions        <- o .: "captions"
+    return AnalyzeImageDescription { .. }
 
 
 data DescriptionCaption =
@@ -163,10 +164,10 @@ data DescriptionCaption =
     deriving (Show)
 
 instance FromJSON DescriptionCaption where
-    parseJSON = withObject "caption" $ \o -> do
-        captionText       <- o .: "text"
-        captionConfidence <- o .: "confidence"
-        return DescriptionCaption { .. }
+  parseJSON = withObject "caption" $ \o -> do
+    captionText       <- o .: "text"
+    captionConfidence <- o .: "confidence"
+    return DescriptionCaption { .. }
 
 data AnalyzeImageMetadata =
     AnalyzeImageMetadata
@@ -213,49 +214,65 @@ data AnalyzeImageRequestBody =
 instance ToJSON AnalyzeImageRequestBody
 
 linkIsLegitImage :: T.Text -> IO Bool
-linkIsLegitImage link = do
-    case
-            ( R.parseUrlHttp (encodeUtf8 link)
-            , R.parseUrlHttps (encodeUtf8 link)
-            )
-        of
-            (Just (url, options), _) -> do
-                headers <- R.runReq R.defaultHttpConfig $ do
-                    res <- R.req R.GET url R.NoReqBody R.ignoreResponse options
-                    return $ R.responseHeader res "Content-Type"
-                return $ case headers of
-                    Just mime ->
-                        "image/"
-                            `T.isPrefixOf` decodeUtf8With lenientDecode mime
-                    _ -> False
-            (_, Just (url, options)) -> do
-                headers <- R.runReq R.defaultHttpConfig $ do
-                    res <- R.req R.GET url R.NoReqBody R.ignoreResponse options
-                    return $ R.responseHeader res "Content-Type"
-                return True
-            _ -> return False
+linkIsLegitImage link =
+  case (R.parseUrlHttp (encodeUtf8 link), R.parseUrlHttps (encodeUtf8 link)) of
+    (Just (url, options), _) -> do
+      headers <- R.runReq R.defaultHttpConfig $ do
+        res <- R.req R.GET url R.NoReqBody R.ignoreResponse options
+        return $ R.responseHeader res "Content-Type"
+      return $ case headers of
+        Just mime -> "image/" `T.isPrefixOf` decodeUtf8With lenientDecode mime
+        _         -> False
+    (_, Just (url, options)) -> do
+      headers <- R.runReq R.defaultHttpConfig $ do
+        res <- R.req R.GET url R.NoReqBody R.ignoreResponse options
+        return $ R.responseHeader res "Content-Type"
+      return True
+    _ -> return False
 
 
-analyzeRequest :: T.Text -> T.Text -> R.Req (R.JsonResponse AnalyzeImageResponse)
+eitherToMaybe (Right a) = Just a
+eitherToMaybe (Left _) = Nothing
+
+linkIsLegitImage2 :: T.Text -> IO Bool
+linkIsLegitImage2 link =
+  R.runReq R.defaultHttpConfig
+    $   case R.parseUrl . encodeUtf8 $ link of
+          Just (Left (httpUrl, options)) ->
+            Just <$> R.req R.GET httpUrl R.NoReqBody R.bsResponse options
+          Just (Right (httpsUrl, options)) ->
+            Just <$> R.req R.GET httpsUrl R.NoReqBody R.bsResponse options
+          _ -> return Nothing
+    >>= \res ->
+          return
+            $   Maybe.isJust
+            $   T.isPrefixOf "image/"
+            .   T.toLower
+            .   decodeUtf8With lenientDecode
+            <$> ((`R.responseHeader` "content-type") =<< res)
+
+analyzeRequest
+  :: T.Text -> T.Text -> R.Req (R.JsonResponse AnalyzeImageResponse)
 analyzeRequest token url =
-    R.req
-            R.POST
-            (    R.https "northeurope.api.cognitive.microsoft.com"
-            R./: "vision"
-            R./: "v1.0"
-            R./: "analyze"
-            )
-            (R.ReqBodyJson $ AnalyzeImageRequestBody url)
-            R.jsonResponse
-        $  R.header "Ocp-Apim-Subscription-Key" (encodeUtf8 token)
-        <> "visualFeatures"
-        =: ("Categories,Tags,Description,Faces,ImageType,Color,Adult" :: T.Text)
-        <> "details"
-        =: ("Celebrities" :: T.Text)
+  R.req
+      R.POST
+      (    R.https "northeurope.api.cognitive.microsoft.com"
+      R./: "vision"
+      R./: "v1.0"
+      R./: "analyze"
+      )
+      (R.ReqBodyJson $ AnalyzeImageRequestBody url)
+      R.jsonResponse
+    $  R.header "Ocp-Apim-Subscription-Key" (encodeUtf8 token)
+    <> "visualFeatures"
+    =: ("Categories,Tags,Description,Faces,ImageType,Color,Adult" :: T.Text)
+    <> "details"
+    =: ("Celebrities" :: T.Text)
 
-executeAnalyzeRequestWith :: T.Text -> IO (Either R.HttpException AnalyzeImageResponse)
+executeAnalyzeRequestWith
+  :: T.Text -> IO (Either R.HttpException AnalyzeImageResponse)
 executeAnalyzeRequestWith body =
-    T.strip <$> TIO.readFile "./secrets/meidovision.secret" >>= \token ->
-        try $ R.runReq R.defaultHttpConfig $ analyzeRequest token body >>= \res ->
-            return $ R.responseBody res
+  T.strip <$> TIO.readFile "./secrets/meidovision.secret" >>= \token ->
+    try $ R.runReq R.defaultHttpConfig $ analyzeRequest token body >>= \res ->
+      return $ R.responseBody res
 
