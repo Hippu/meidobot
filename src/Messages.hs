@@ -65,13 +65,12 @@ messages dis receivedMessage =
     _ -> pure ()
 
 getMeidoGPTResponse :: Message -> IO T.Text
-getMeidoGPTResponse msg =
-  translateFiToEn (messageText msg)
-    >>= \inEnglish ->
-      MeidoGPT.sendMessage (translationResponseToText inEnglish)
-        >>= ( translateEnToFi
-                >=> (return . translationResponseToText)
-            )
+getMeidoGPTResponse msg = do
+  questionInEn <- translationResponseToText <$> translateFiToEn (messageText msg)
+  responseInEn <- MeidoGPT.sendMessage questionInEn
+  translationResponseToText <$> translateEnToFi responseInEn
+  
+  
 
 response :: Random.RandomGen g => Message -> g -> Maybe MeidoResponse
 response m rng
