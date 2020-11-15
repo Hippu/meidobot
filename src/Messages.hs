@@ -66,14 +66,14 @@ messages dis receivedMessage =
 
 filterBrackets :: T.Text -> T.Text
 filterBrackets txt =
-    T.concat $ List.filter (\x -> not ("<" `T.isPrefixOf` x && ">" `T.isSuffixOf` x)) $ T.words txt
+    T.unwords $ List.filter (\x -> not ("<" `T.isPrefixOf` x && ">" `T.isSuffixOf` x)) $ T.words txt
 
 getMeidoGPTResponse :: Message -> IO T.Text
 getMeidoGPTResponse msg = do
   questionInEn <- translationResponseToText <$> translateFiToEn (filterBrackets (messageText msg))
   print ("Question In En: " <> questionInEn)
   responseInEn <- MeidoGPT.sendMessage questionInEn
-  print ("Response In En: " <> questionInEn)
+  print ("Response In En: " <> responseInEn)
   responseInFi <- translationResponseToText <$> translateEnToFi responseInEn
   print ("Response In Fi: " <> responseInFi)
   return responseInFi

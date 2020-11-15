@@ -44,7 +44,7 @@ translateRequest translationType token text =
           =: ("3.0" :: T.Text)
           <> case translationType of
             FiToEn -> "from" =: ("fi" :: T.Text) <> "to" =: ("en" :: T.Text)
-            EnToFi -> "from" =: ("en" :: T.Text) <> "to" =: ("en" :: T.Text)
+            EnToFi -> "from" =: ("en" :: T.Text) <> "to" =: ("fi" :: T.Text)
 
 translateEnToFi :: T.Text -> IO [TranslationObject]
 translateEnToFi text = do
