@@ -66,7 +66,7 @@ messages dis receivedMessage =
 
 getMeidoGPTResponse :: Message -> IO T.Text
 getMeidoGPTResponse msg =
-  translateToEn (messageText msg)
+  translateFiToEn (messageText msg)
     >>= \inEnglish ->
       MeidoGPT.sendMessage (translationResponseToText inEnglish)
         >>= ( translateToFi
