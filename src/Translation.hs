@@ -49,7 +49,7 @@ translateRequest translationType token text =
 translateEnToFi :: T.Text -> IO [TranslationObject]
 translateEnToFi text = do
   token <- T.strip <$> TIO.readFile "./secrets/translation.secret"
-  print $ "translating " <> text <> "to english"
+  print $ "translating " <> text <> " to finnish"
   runReq defaultHttpConfig $ do
     res <- translateRequest EnToFi token text
     return $ responseBody res
@@ -57,7 +57,7 @@ translateEnToFi text = do
 translateFiToEn :: T.Text -> IO [TranslationObject]
 translateFiToEn text = do
   token <- T.strip <$> TIO.readFile "./secrets/translation.secret"
-  print $ "translating " <> text <> "to finnish"
+  print $ "translating " <> text <> " to english"
   runReq defaultHttpConfig $ do
     res <- translateRequest FiToEn token text
     return $ responseBody res
