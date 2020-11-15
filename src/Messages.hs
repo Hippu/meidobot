@@ -56,7 +56,7 @@ messages dis receivedMessage =
           Right imgAnalysis ->
             case imageResponse receivedMessage imgAnalysis of
               Just (MeidoTranslate t) ->
-                translateToFi t >>= \translation ->
+                translateEnToFi t >>= \translation ->
                   restCall dis (CreateMessage (messageChannel receivedMessage) (translationResponseToText translation)) >>= print
               Just (MeidoResponse request) ->
                 restCall dis request >>= print
