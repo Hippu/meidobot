@@ -17,7 +17,7 @@ import MeidoGPT
 import Meidovision
 import System.Process
 import qualified System.Random as Random
-import Translation (translateToEn, translateToFi, translationResponseToText)
+import Translation (translateFiToEn, translateEnToFi, translationResponseToText)
 
 data MeidoResponse
   = MeidoResponse (ChannelRequest Message)
@@ -69,7 +69,7 @@ getMeidoGPTResponse msg =
   translateFiToEn (messageText msg)
     >>= \inEnglish ->
       MeidoGPT.sendMessage (translationResponseToText inEnglish)
-        >>= ( translateToFi
+        >>= ( translateEnToFi
                 >=> (return . translationResponseToText)
             )
 
